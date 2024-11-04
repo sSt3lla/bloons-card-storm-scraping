@@ -25,11 +25,17 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
     for tr in _get_tr_tags(soup, 0):
         tds = _replace_br_with_newline(tr.findAll('td'))
         name = _extract_text(tds[1])
-        abilities = {int(k): v for d in [_parse_bloon_string(a) for a in tds[2].text.strip().split('\n')] for k, v in d.items()}
+
+        abilities: dict[int, str] = {}
+        for a in tds[2].text.strip().split('\n'):
+            parsed_bloon = _parse_bloon_string(a)
+            for k, v in parsed_bloon.items():
+                abilities[int(k)] = v
         
-        unique_powers = [p for p in all_powers if p.name in tds[3].text.strip().split('\n')]
+        unique_power_names = tds[3].text.strip().split('\n')
+        unique_powers = [p for p in all_powers if p.name in unique_power_names]
+
         heros.append(Hero(name, abilities, unique_powers))
-        
     return heros
 
 def _extract_objects(soup: BeautifulSoup, table_index: int, parse_fn):
