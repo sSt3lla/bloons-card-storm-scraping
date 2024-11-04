@@ -1,5 +1,6 @@
 from enum import StrEnum, auto
 from dataclasses import dataclass
+from typing import Optional, Sequence
 
 class Rarity(StrEnum):
     """Enum class that represents the rarity of a card."""
@@ -18,6 +19,13 @@ class Rarity(StrEnum):
             raise ValueError(f"{name} is not a valid Rarity")
 
 @dataclass
+class Hero:
+    """Class that represents a hero."""
+    name: str
+    abilities: dict[int, str]
+    unique_powers: list['Power']
+
+@dataclass
 class Card:
     """Base class for all cards."""
     name: str
@@ -28,9 +36,9 @@ class Card:
 @dataclass
 class Monkey(Card):
     """Class that represents a monkey card."""
-    damage: int
-    ammo: int
-    reload: int
+    damage: Optional[int]
+    ammo: Optional[int]
+    reload: Optional[int]
 
 @dataclass
 class Bloon(Card):
@@ -38,8 +46,9 @@ class Bloon(Card):
     charge: int
     damage: int
     delay: int
+    is_large: bool
 
 @dataclass
 class Power(Card):
     """Class that represents a power card."""
-    pass
+    hero: Optional[Hero]
