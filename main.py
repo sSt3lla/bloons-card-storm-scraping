@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from get_cards import get_bloons, get_monkeys
+from get_cards import get_bloons, get_monkeys, get_powers
 
 
 def get_html(url) -> str:
@@ -18,11 +18,17 @@ for monkey in monkeys:
 
 print()
 print()
-print()
 
 bloons = get_bloons(soup)
 for bloon in bloons:
     print(bloon)
     print()
 
+print()
+print()
+
+powers = get_powers(soup)
+for power in powers:
+    print(power)
+    print()
 
