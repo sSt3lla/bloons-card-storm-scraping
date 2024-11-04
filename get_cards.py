@@ -1,169 +1,75 @@
 from bs4 import BeautifulSoup, Tag, NavigableString
 from cards import Monkey, Rarity, Bloon, Power, Hero
 from bs4.element import ResultSet
-import re
+from re import match
 from functools import cache
-from typing import cast
+from typing import Optional, cast
 
 @cache
 def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
-    '''This function will return a list of Monkey objects'''
-    monkeys: list[Monkey] = []
-
-    for tr in _get_tr_tags(soup, 1):
-        all_td = _replace_br_with_newline(tr.findAll('td'))
-
-        name_td = all_td[1]
-        name = name_td.text.strip()
-
-        description_td = all_td[2]
-        description = _extract_playable(description_td)
-        if description == 'N/A':
-            description = ''
-        
-        cost_td = all_td[3]
-        cost = _extract_playable(cost_td)
-        cost = int(cost)
-
-        damage_td = all_td[4]
-        damage = _extract_playable(damage_td)
-        if damage == 'N/A':
-            damage = None
-        else:
-            damage = int(damage)
-        
-        ammo_td = all_td[5]
-        ammo = _extract_playable(ammo_td)
-        if ammo == 'N/A':
-            ammo = None
-        else:
-            ammo = int(ammo)
-
-        reload = all_td[6]
-        reload = _extract_playable(reload)
-        if reload == 'N/A':
-            reload = None
-        else:
-            reload = int(reload)
-        rarity_td = all_td[7]
-
-        text = rarity_td.text.strip().replace(' ', '_')
-
-        rarity = Rarity.from_string(text)
-        monkey = Monkey(name, description, cost, rarity, damage, ammo, reload)
-        monkeys.append(monkey)
-
-    return monkeys
+    return _extract_objects(soup, 1, _parse_monkey_data)
 
 @cache
 def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
-    '''This function will return a list of bloon objects'''
-    bloons: list[Bloon] = []
-
-    for tr in _get_tr_tags(soup, 2):
-        all_td = _replace_br_with_newline(tr.findAll('td'))
-
-        name_td = all_td[1]
-        name = name_td.text.strip()
-
-        description_td = all_td[2]
-        description = _extract_playable(description_td)
-        if description == 'N/A':
-            description = ''
-
-        cost_td = all_td[3]
-        cost = _extract_playable(cost_td)
-        cost = int(cost)
-
-        charges_td = all_td[4]
-        charges = _extract_playable(charges_td)
-        charges = int(charges)
-        
-        damage_td = all_td[5]
-        damage = _extract_playable(damage_td)
-        damage = int(damage)
-
-        delay_td = all_td[6]
-        delay = _extract_playable(delay_td)
-        delay = int(delay)
-
-        rarity_td = all_td[7]
-        text = rarity_td.text.strip().replace(' ', '_')
-        rarity = Rarity.from_string(text)
-
-        is_large_criteria = ['MOAB', 'BFB', 'ZOMG']
-        is_large = any(criteria in name for criteria in is_large_criteria)
-
-        bloon = Bloon(name=name, 
-                      description=description, 
-                      cost=cost, 
-                      rarity=rarity, 
-                      charge=charges, 
-                      damage=damage, 
-                      delay=delay, 
-                      is_large=is_large)
-        bloons.append(bloon)
-    return bloons
+    return _extract_objects(soup, 2, _parse_bloon_data)
 
 @cache
 def get_powers(soup: BeautifulSoup) -> list[Power]:
-    '''This function will return a list of Power objects'''
-    powers: list[Power] = []
-
-    for tr in _get_tr_tags(soup, 3):
-        all_td = _replace_br_with_newline(tr.findAll('td'))
-
-        name_td = all_td[1]
-        name = name_td.text.strip()
-
-        description_td = all_td[2]
-        description = _extract_playable(description_td)
-        if description == 'N/A':
-            description = ''
-
-        cost_td = all_td[3]
-        cost = _extract_playable(cost_td)
-        cost = int(cost)
-
-        rarity_td = all_td[4]
-        text = rarity_td.text.strip().replace(' ', '_')
-        rarity = Rarity.from_string(text)
-
-        power = Power(name, description, cost, rarity, hero=None)
-        powers.append(power)
-    return powers
+    return _extract_objects(soup, 3, _parse_power_data)
 
 @cache
 def get_heros(soup: BeautifulSoup) -> list[Hero]:
-    '''This function will return a list of Hero objects'''
     heros: list[Hero] = []
-
+    all_powers = get_powers(soup)
+    
     for tr in _get_tr_tags(soup, 0):
-        all_td = _replace_br_with_newline(tr.findAll('td'))
-
-        name_td = all_td[1]
-        name = name_td.text.strip()
-
-        abilities_td = all_td[2]
-        abilities = abilities_td.text.strip()
-        abilities = abilities.split('\n')
-        abilities = [_parse_bloon_string(ability) for ability in abilities]
-        abilities = {key: value for ability in abilities for key, value in ability.items()}
-
-        all_powers = get_powers(soup)
-
-        unique_powers_td = all_td[3]
-        unique_powers = unique_powers_td.text.strip()
-        unique_powers = unique_powers.split('\n')
-
-        unique_powers_list = [p for p in all_powers if p.name in unique_powers]
-
-        hero = Hero(name, abilities, unique_powers_list)
-        heros.append(hero)
-
+        tds = _replace_br_with_newline(tr.findAll('td'))
+        name = _extract_text(tds[1])
+        abilities = {int(k): v for d in [_parse_bloon_string(a) for a in tds[2].text.strip().split('\n')] for k, v in d.items()}
+        
+        unique_powers = [p for p in all_powers if p.name in tds[3].text.strip().split('\n')]
+        heros.append(Hero(name, abilities, unique_powers))
+        
     return heros
 
-from bs4 import Tag, ResultSet
+def _extract_objects(soup: BeautifulSoup, table_index: int, parse_fn):
+    objects = []
+    for tr in _get_tr_tags(soup, table_index):
+        tds = _replace_br_with_newline(tr.findAll('td'))
+        str_tds = [_extract_text(td) for td in tds]
+        objects.append(parse_fn(str_tds))
+    return objects
+
+def _parse_monkey_data(tds: list[str]) -> Monkey:
+    name = tds[1]
+    description = _extract_playable(tds[2])
+    cost = int(_extract_playable(tds[3]))
+    damage = optional_int(_extract_playable(tds[4]))
+    ammo = optional_int(_extract_playable(tds[5]))
+    reload_time = optional_int(_extract_playable(tds[6]))
+    rarity = Rarity.from_string(tds[7].replace(' ', '_'))
+    return Monkey(name, description, cost, rarity, damage, ammo, reload_time)
+
+def _parse_bloon_data(tds: list[str]) -> Bloon:
+    name = tds[1]
+    description = tds[2]
+    cost = int(tds[3])
+    charges = int(tds[4])
+    damage = int(tds[5])
+    delay = int(tds[6])
+    rarity = Rarity.from_string(tds[7].replace(' ', '_'))
+    is_large = any(x in name for x in ['MOAB', 'BFB', 'ZOMG'])
+
+    return Bloon(name, description, cost, rarity, charges, damage, delay, is_large)
+
+def _parse_power_data(tds: list[str]) -> Power:
+    name = tds[1]
+    description = tds[2]
+    cost = int(tds[3])
+    rarity = Rarity.from_string(tds[4].replace(' ', '_'))
+
+    #Todo add hero
+    return Power(name, description, cost, rarity, hero=None)
 
 def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> list[Tag]:
     for tag in tag_list:
@@ -173,37 +79,32 @@ def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> list[Tag]:
     return tag_list
 
 def _get_tr_tags(soup: BeautifulSoup, index: int) -> list[Tag]:
-    '''This function will return all tr tags from a table'''
-
-    #<table class="wikitable sortable jquery-tablesorter" data-index-number="3">
-    table: Tag = soup.findAll('table', {'class': 'wikitable'})[index]
-
+    table: Tag = soup.find_all('table', {'class': 'wikitable'})[index]
     tbody = _check_tag(table.find('tbody'))
-    tr_tags: ResultSet[Tag] = tbody.findAll('tr')
-    return tr_tags[1:]
+    return tbody.find_all('tr')[1:]
 
+def _parse_bloon_string(s: str) -> dict[int, str]:
+    matched = match(r"\((\d+)\):\s*(.+)", s)
+    assert matched, f"Invalid bloon string: {s}"
+    return {int(matched.group(1)): matched.group(2)}
 
-def _parse_bloon_string(s: str) -> dict:
-    '''Use regex to match the format "(x): text"'''
-    match = re.match(r"\((\d+)\):\s*(.+)", s)
-    assert match, f"Invalid bloon string: {s}"
-    return {
-        int(match.group(1)) : match.group(2)
-    }
-
-def _extract_playable(tag: Tag) -> str:
-    '''This function will extract the text from a tag and remove any playable text'''
-    text = tag.text
-    
-    split_text = ['(Full Playable - update)', '(Full Playable)','(First Release)']
-
-    for split in split_text:
-        if split in text:
-            text = text.split(split)[0]
-            break
-    return text.strip()
+def _extract_playable(s: str) -> str:
+    '''Extracts the playable text from a tag.'''
+    for split_text in ['(Full Playable - update)', '(Full Playable)', '(First Release)']:
+        if split_text in s:
+            return s.split(split_text)[0].strip()
+    return s
 
 def _check_tag(tag: Tag | NavigableString | None) -> Tag:
-    '''This function will check if a tag is empty and return N/A if it is'''
-    assert isinstance(tag, Tag), 'Tag is not a Tag'
+    assert isinstance(tag, Tag), 'Tag is not a valid HTML Tag'
     return tag
+
+def _extract_text(tag: Tag) -> str:
+    return tag.text.strip()
+
+def optional_int(value: str) -> Optional[int]:
+    '''Converts a string to an integer if possible, otherwise returns None.'''
+    try:
+        return int(value) if value != 'N/A' else None
+    except ValueError:
+        return None
