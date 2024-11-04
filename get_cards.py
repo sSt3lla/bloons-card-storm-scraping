@@ -3,6 +3,7 @@ from cards import Monkey, Rarity, Bloon, Power, Hero
 from bs4.element import ResultSet
 import re
 from functools import cache
+from typing import cast
 
 @cache
 def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
@@ -10,9 +11,7 @@ def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
     monkeys: list[Monkey] = []
 
     for tr in _get_tr_tags(soup, 1):
-        all_td: ResultSet[Tag] = tr.findAll('td')
-
-        _replace_br_with_newline(all_td)
+        all_td = _replace_br_with_newline(tr.findAll('td'))
 
         name_td = all_td[1]
         name = name_td.text.strip()
@@ -62,9 +61,7 @@ def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
     bloons: list[Bloon] = []
 
     for tr in _get_tr_tags(soup, 2):
-        all_td: ResultSet[Tag] = tr.findAll('td')
-
-        _replace_br_with_newline(all_td)
+        all_td = _replace_br_with_newline(tr.findAll('td'))
 
         name_td = all_td[1]
         name = name_td.text.strip()
@@ -114,8 +111,7 @@ def get_powers(soup: BeautifulSoup) -> list[Power]:
     powers: list[Power] = []
 
     for tr in _get_tr_tags(soup, 3):
-        all_td: ResultSet[Tag] = tr.findAll('td')
-        _replace_br_with_newline(all_td)
+        all_td = _replace_br_with_newline(tr.findAll('td'))
 
         name_td = all_td[1]
         name = name_td.text.strip()
@@ -143,8 +139,7 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
     heros: list[Hero] = []
 
     for tr in _get_tr_tags(soup, 0):
-        all_td: ResultSet[Tag] = tr.findAll("td")
-        _replace_br_with_newline(all_td)
+        all_td = _replace_br_with_newline(tr.findAll('td'))
 
         name_td = all_td[1]
         name = name_td.text.strip()
@@ -168,10 +163,14 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
 
     return heros
 
-def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> None:
-    for tag in tag_list:
-        [br.replace_with('\n') for br in tag.find_all("br")]
+from bs4 import Tag, ResultSet
 
+def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> list[Tag]:
+    for tag in tag_list:
+        for br in tag.find_all("br"):
+            br = cast(Tag, br)
+            br.replace_with('\n')
+    return tag_list
 
 def _get_tr_tags(soup: BeautifulSoup, index: int) -> list[Tag]:
     '''This function will return all tr tags from a table'''
@@ -191,7 +190,6 @@ def _parse_bloon_string(s: str) -> dict:
     return {
         int(match.group(1)) : match.group(2)
     }
-
 
 def _extract_playable(tag: Tag) -> str:
     '''This function will extract the text from a tag and remove any playable text'''
