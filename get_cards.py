@@ -58,7 +58,7 @@ def _parse_bloon_data(tds: list[str]) -> Bloon:
     damage = int(tds[5])
     delay = int(tds[6])
     rarity = Rarity.from_string(tds[7].replace(' ', '_'))
-    is_large = any(x in name for x in ['MOAB', 'BFB', 'ZOMG'])
+    is_large = any(x in name.upper() for x in ['MOAB', 'BFB', 'ZOMG'])
 
     return Bloon(name, description, cost, rarity, charges, damage, delay, is_large)
 
