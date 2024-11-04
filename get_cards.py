@@ -1,8 +1,6 @@
 from bs4 import BeautifulSoup, Tag
-from cards import Monkey, Rarity
-from main import get_html, URL
+from cards import Monkey, Rarity, Bloon
 from bs4.element import ResultSet
-
 
 def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
     '''This function will return a list of Monkey objects'''
@@ -20,7 +18,7 @@ def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
         # print(name)
         all_td = tr.findAll("td")
 
-        # Replace all <br> with a space
+        # Replace all <br> with a newline
         for tag in all_td:
             all_br = tag.findAll("br")
             for br in all_br:
@@ -74,6 +72,57 @@ def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
 
     return monkeys
 
+def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
+    '''This function will return a list of bloon objects'''
+    bloons: list[Bloon] = []
+
+    bloon_table: Tag = soup.findAll("table", {"class": "wikitable"})[2]
+
+    tbody: Tag = bloon_table.find("tbody")
+    all_tr: ResultSet[Tag] = tbody.findAll("tr")
+
+    bloon_tr = all_tr[1:]
+
+    for tr in bloon_tr:
+        all_td = tr.findAll("td")
+
+         # Replace all <br> with a newline
+        for tag in all_td:
+            all_br = tag.findAll("br")
+            for br in all_br:
+                br.replace_with('\n')
+
+        name_td = all_td[1]
+        name = name_td.text.strip()
+
+        description_td = all_td[2]
+        description = extract_playable(description_td)
+        if description == 'N/A':
+            description = ''
+
+        cost_td = all_td[3]
+        cost = extract_playable(cost_td)
+        cost = int(cost)
+
+        charges_td = all_td[4]
+        charges = extract_playable(charges_td)
+        charges = int(charges)
+        
+        damage_td = all_td[5]
+        damage = extract_playable(damage_td)
+        damage = int(damage)
+
+        delay_td = all_td[6]
+        delay = extract_playable(delay_td)
+        delay = int(delay)
+
+        rarity_td = all_td[7]
+        text = rarity_td.text.strip().replace(' ', '_')
+        rarity = Rarity.from_string(text)
+
+        bloon = Bloon(name, description, cost, charges, damage, delay, rarity)
+        bloons.append(bloon)
+    return bloons
 
 def extract_playable(tag: Tag) -> str:
     text = tag.text

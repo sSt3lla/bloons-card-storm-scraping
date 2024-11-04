@@ -1,7 +1,6 @@
-from enum import unique, StrEnum, auto
+from enum import StrEnum, auto
 from dataclasses import dataclass
 
-@unique
 class Rarity(StrEnum):
     """Enum class that represents the rarity of a card."""
     COMMON = auto()
