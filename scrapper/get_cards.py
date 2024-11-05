@@ -89,7 +89,7 @@ def parse_bloon_data(tds: list[str]) -> Bloon:
 
 def parse_power_data(tds: list[str]) -> Power:
     name = tds[1]
-    description = tds[2]
+    description = extract_playable(tds[2])
     cost = int(tds[3])
     rarity = Rarity.from_string(tds[4].replace(' ', '_'))
 
