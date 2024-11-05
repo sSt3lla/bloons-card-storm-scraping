@@ -114,6 +114,9 @@ def parse_bloon_string(s: str) -> dict[int, str]:
 
 def extract_playable(s: str) -> str:
     '''Extracts the playable text from a tag.'''
+
+    if s == 'N/A':
+        return ''
     for split_text in ['(Full Playable - update)', '(Full Playable)', '(First Release)']:
         if split_text in s:
             return s.split(split_text)[0].strip()
