@@ -9,9 +9,8 @@ soup = BeautifulSoup(html, 'html.parser')
 
 monkeys = get_monkeys(soup)
 bloons = get_bloons(soup)
-get_powers(soup)
-heros = get_heros(soup)   # Heroes update the power references
-powers = get_powers(soup)  # Get the same powers with hero references
+heros = get_heros(soup)
+powers = get_powers(soup)
 
 for monkey in monkeys:
     print(monkey)
