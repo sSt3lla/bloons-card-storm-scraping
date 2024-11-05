@@ -1,6 +1,6 @@
 from functools import cache
 from re import match
-from typing import Optional, cast
+from typing import Optional, cast, Sequence
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from bs4.element import ResultSet
@@ -9,7 +9,7 @@ from scrapper.cards import Bloon, Hero, Monkey, Power, Rarity
 
 
 @cache
-def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
+def get_monkeys(soup: BeautifulSoup) -> Sequence[Monkey]:
     return extract_objects(soup, 1, parse_monkey_data)
 
 @cache
@@ -57,7 +57,7 @@ def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], list[Power]]:
     return heros, power_cards  
 
 
-def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn) -> list[object]:
+def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn) -> Sequence[object]:
     objects = []
     for tr in get_tr_tags(soup, table_index):
         tds = replace_br_with_newline(tr.findAll('td'))
