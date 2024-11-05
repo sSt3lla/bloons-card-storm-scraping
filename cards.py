@@ -1,6 +1,7 @@
-from enum import StrEnum, auto
 from dataclasses import dataclass
+from enum import StrEnum, auto
 from typing import Optional, Sequence
+
 
 class Rarity(StrEnum):
     """Enum class that represents the rarity of a card."""

@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-from get_cards import get_bloons, get_monkeys, get_powers, get_heros
+
+from get_cards import get_bloons, get_heros, get_monkeys, get_powers
 
 URL = 'https://bloons.fandom.com/wiki/Bloons_Card_Storm'
 html = requests.get(URL).text

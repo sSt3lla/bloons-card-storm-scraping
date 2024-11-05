@@ -1,11 +1,12 @@
-from bs4 import BeautifulSoup, Tag, NavigableString
-from cards import Monkey, Rarity, Bloon, Power, Hero
-from bs4.element import ResultSet
-from re import match
 from functools import cache
+from re import match
 from typing import Optional, cast
 
-_powers_initialized: list[Power] = []
+from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4.element import ResultSet
+
+from cards import Bloon, Hero, Monkey, Power, Rarity
+
 
 @cache
 def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
@@ -15,18 +16,16 @@ def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
 def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
     return _extract_objects(soup, 2, _parse_bloon_data)
 
+@cache
 def get_powers(soup: BeautifulSoup) -> list[Power]:
     """Get powers, using the cached version if it exists and has been initialized with heroes."""
-    global _powers_initialized
-    if not _powers_initialized:
-        _powers_initialized = _extract_objects(soup, 3, _parse_power_data)
-    return _powers_initialized
+    power_cards = _extract_objects(soup, 3, _parse_power_data)
+
+    return power_cards
 
 @cache
 def get_heros(soup: BeautifulSoup) -> list[Hero]:
     heros: list[Hero] = []
-    all_powers = get_powers(soup)
-    power_by_name = {p.name: p for p in all_powers}
     
     for tr in _get_tr_tags(soup, 0):
         tds = _replace_br_with_newline(tr.findAll('td'))
@@ -38,14 +37,7 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
             for k, v in parsed_bloon.items():
                 abilities[int(k)] = v
         
-        unique_power_names = tds[3].text.strip().split('\n')
-        unique_powers = [power_by_name[name] for name in unique_power_names if name in power_by_name]
-
-        hero = Hero(name, abilities, unique_powers)
-        
-        # Update the hero reference in the power objects
-        for power in unique_powers:
-            power.hero = hero
+        hero = Hero(name, abilities, None)
 
         heros.append(hero)
     return heros
