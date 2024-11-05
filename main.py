@@ -13,6 +13,6 @@ bloons = get_bloons(soup)
 heros = get_heros(soup)
 powers = get_powers(soup)
 
-cards = monkeys + bloons + heros + powers
+cards = monkeys + bloons + powers + heros
 json_cards = json.dumps(cards, cls=CardEncoder, indent=4)
 print(json_cards)

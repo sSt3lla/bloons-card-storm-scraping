@@ -1,6 +1,6 @@
 from functools import cache
 from re import match
-from typing import Optional, cast, Sequence, TypeVar, Callable
+from typing import Optional, cast, TypeVar, Callable
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from bs4.element import ResultSet
@@ -10,26 +10,26 @@ from scraper.cards import Bloon, Hero, Monkey, Power, Rarity
 T = TypeVar('T')
 
 @cache
-def get_monkeys(soup: BeautifulSoup) -> Sequence[Monkey]:
+def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
     return extract_objects(soup, 1, parse_monkey_data)
 
 @cache
-def get_bloons(soup: BeautifulSoup) -> Sequence[Bloon]:
+def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
     return extract_objects(soup, 2, parse_bloon_data)
 
 @cache
-def get_powers(soup: BeautifulSoup) -> Sequence[Power]:
+def get_powers(soup: BeautifulSoup) -> list[Power]:
     return get_heros_and_powers(soup)[1]
 
 @cache
-def get_heros(soup: BeautifulSoup) -> Sequence[Hero]:
+def get_heros(soup: BeautifulSoup) -> list[Hero]:
     return get_heros_and_powers(soup)[0]
     
 @cache
-def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], Sequence[Power]]:
+def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], list[Power]]:
     heros: list[Hero] = []
  
-    power_cards: Sequence[Power] = extract_objects(soup, 3, parse_power_data)
+    power_cards: list[Power] = extract_objects(soup, 3, parse_power_data)
 
     for tr in get_tr_tags(soup, 0):
         tds = replace_br_with_newline(tr.findAll('td'))
@@ -64,7 +64,7 @@ def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], Sequence[Powe
     return heros, power_cards  
 
 
-def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn: Callable[[list[str]], T]) -> Sequence[T]:
+def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn: Callable[[list[str]], T]) -> list[T]:
     objects = []
     for tr in get_tr_tags(soup, table_index):
         tds = replace_br_with_newline(tr.findAll('td'))
