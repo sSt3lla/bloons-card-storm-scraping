@@ -1,33 +1,36 @@
 from functools import cache
 from re import match
-from typing import Optional, cast, Sequence
+from typing import Optional, cast, Sequence, TypeVar, Callable
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from bs4.element import ResultSet
 
-from scrapper.cards import Bloon, Hero, Monkey, Power, Rarity
+from scraper.cards import Bloon, Hero, Monkey, Power, Rarity
 
+T = TypeVar('T')
 
 @cache
 def get_monkeys(soup: BeautifulSoup) -> Sequence[Monkey]:
     return extract_objects(soup, 1, parse_monkey_data)
 
 @cache
-def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
+def get_bloons(soup: BeautifulSoup) -> Sequence[Bloon]:
     return extract_objects(soup, 2, parse_bloon_data)
 
 @cache
-def get_powers(soup: BeautifulSoup) -> list[Power]:
+def get_powers(soup: BeautifulSoup) -> Sequence[Power]:
     return get_heros_and_powers(soup)[1]
 
 @cache
-def get_heros(soup: BeautifulSoup) -> list[Hero]:
+def get_heros(soup: BeautifulSoup) -> Sequence[Hero]:
     return get_heros_and_powers(soup)[0]
     
 @cache
-def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], list[Power]]:
+def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], Sequence[Power]]:
     heros: list[Hero] = []
-    
+ 
+    power_cards: Sequence[Power] = extract_objects(soup, 3, parse_power_data)
+
     for tr in get_tr_tags(soup, 0):
         tds = replace_br_with_newline(tr.findAll('td'))
         name = extract_text(tds[1])
@@ -38,26 +41,30 @@ def get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], list[Power]]:
             for k, v in parsed_bloon.items():
                 abilities[int(k)] = v
         
-        powers: list[str] = extract_text(tds[3]).split('\n')
+        powers_names: list[str] = extract_text(tds[3]).split('\n')
 
+        powers: list[Power] = []
+        for power_name in powers_names:
+            for power in power_cards:
+                if power.name == power_name:
+                    powers.append(power)
+                    break
+            else:
+                raise ValueError(f"Power {power_name} not found")
+
+    
         hero = Hero(name, abilities, powers)
         heros.append(hero)
-    
-    power_cards: list[Power] = extract_objects(soup, 3, parse_power_data)
 
     # Now we update all references
-    for power in power_cards:
-        for hero in heros:
-            if power.name in hero.unique_powers:
-                power.hero = hero
-                hero.unique_powers.remove(power.name)
-                hero.unique_powers.append(power)
-                break
+    for hero in heros:
+        for power in hero.unique_powers:
+            power.hero = hero
             
     return heros, power_cards  
 
 
-def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn) -> Sequence[object]:
+def extract_objects(soup: BeautifulSoup, table_index: int, parse_fn: Callable[[list[str]], T]) -> Sequence[T]:
     objects = []
     for tr in get_tr_tags(soup, table_index):
         tds = replace_br_with_newline(tr.findAll('td'))

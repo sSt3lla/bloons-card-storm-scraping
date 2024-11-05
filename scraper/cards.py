@@ -26,7 +26,7 @@ class Hero:
     abilities: dict[int, str]
 
     #Todo add comment explaing this
-    unique_powers: list['Power'] | list[str]
+    unique_powers: list['Power']
 
 
 @dataclass
