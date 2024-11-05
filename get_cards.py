@@ -18,13 +18,14 @@ def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
 
 @cache
 def get_powers(soup: BeautifulSoup) -> list[Power]:
-    """Get powers, using the cached version if it exists and has been initialized with heroes."""
-    power_cards = _extract_objects(soup, 3, _parse_power_data)
-
-    return power_cards
+    return _get_heros_and_powers(soup)[1]
 
 @cache
 def get_heros(soup: BeautifulSoup) -> list[Hero]:
+    return _get_heros_and_powers(soup)[0]
+    
+@cache
+def _get_heros_and_powers(soup: BeautifulSoup) -> tuple[list[Hero], list[Power]]:
     heros: list[Hero] = []
     
     for tr in _get_tr_tags(soup, 0):
@@ -32,17 +33,31 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
         name = _extract_text(tds[1])
 
         abilities: dict[int, str] = {}
-        for a in tds[2].text.strip().split('\n'):
+        for a in _extract_text(tds[2]).split('\n'):
             parsed_bloon = _parse_bloon_string(a)
             for k, v in parsed_bloon.items():
                 abilities[int(k)] = v
         
-        hero = Hero(name, abilities, None)
+        powers: list[str] = _extract_text(tds[3]).split('\n')
 
+        hero = Hero(name, abilities, powers)
         heros.append(hero)
-    return heros
+    
+    power_cards: list[Power] = _extract_objects(soup, 3, _parse_power_data)
 
-def _extract_objects(soup: BeautifulSoup, table_index: int, parse_fn):
+    # Now we update all references
+    for power in power_cards:
+        for hero in heros:
+            if power.name in hero.unique_powers:
+                power.hero = hero
+                hero.unique_powers.remove(power.name)
+                hero.unique_powers.append(power)
+                break
+            
+    return heros, power_cards  
+
+
+def _extract_objects(soup: BeautifulSoup, table_index: int, parse_fn) -> list[object]:
     objects = []
     for tr in _get_tr_tags(soup, table_index):
         tds = _replace_br_with_newline(tr.findAll('td'))
@@ -78,8 +93,7 @@ def _parse_power_data(tds: list[str]) -> Power:
     cost = int(tds[3])
     rarity = Rarity.from_string(tds[4].replace(' ', '_'))
 
-    # We update the power card later to include the hero
-    return Power(name, description, cost, rarity, hero=None)
+    return Power(name, description, cost, rarity)
 
 def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> list[Tag]:
     for tag in tag_list:

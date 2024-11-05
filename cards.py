@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum, auto
-from typing import Optional, Sequence
+from typing import Optional
 
 
 class Rarity(StrEnum):
@@ -24,7 +24,10 @@ class Hero:
     """Class that represents a hero."""
     name: str
     abilities: dict[int, str]
-    unique_powers: list['Power']
+
+    #Todo add comment explaing this
+    unique_powers: list['Power'] | list[str]
+
 
 @dataclass
 class Card:
@@ -52,4 +55,4 @@ class Bloon(Card):
 @dataclass
 class Power(Card):
     """Class that represents a power card."""
-    hero: Optional[Hero]
+    hero: Optional[Hero] = None

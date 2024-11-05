@@ -13,6 +13,14 @@ get_powers(soup)
 heros = get_heros(soup)   # Heroes update the power references
 powers = get_powers(soup)  # Get the same powers with hero references
 
-# Print everything
+for monkey in monkeys:
+    print(monkey)
+
+for bloon in bloons:
+    print(bloon)
+
 for power in powers:
-    print(power)  # Now shows hero references
+    print(power)
+
+for hero in heros:
+    print(hero)
