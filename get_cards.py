@@ -5,6 +5,8 @@ from re import match
 from functools import cache
 from typing import Optional, cast
 
+_powers_initialized: list[Power] = []
+
 @cache
 def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
     return _extract_objects(soup, 1, _parse_monkey_data)
@@ -13,14 +15,18 @@ def get_monkeys(soup: BeautifulSoup) -> list[Monkey]:
 def get_bloons(soup: BeautifulSoup) -> list[Bloon]:
     return _extract_objects(soup, 2, _parse_bloon_data)
 
-@cache
 def get_powers(soup: BeautifulSoup) -> list[Power]:
-    return _extract_objects(soup, 3, _parse_power_data)
+    """Get powers, using the cached version if it exists and has been initialized with heroes."""
+    global _powers_initialized
+    if not _powers_initialized:
+        _powers_initialized = _extract_objects(soup, 3, _parse_power_data)
+    return _powers_initialized
 
 @cache
 def get_heros(soup: BeautifulSoup) -> list[Hero]:
     heros: list[Hero] = []
     all_powers = get_powers(soup)
+    power_by_name = {p.name: p for p in all_powers}
     
     for tr in _get_tr_tags(soup, 0):
         tds = _replace_br_with_newline(tr.findAll('td'))
@@ -33,9 +39,15 @@ def get_heros(soup: BeautifulSoup) -> list[Hero]:
                 abilities[int(k)] = v
         
         unique_power_names = tds[3].text.strip().split('\n')
-        unique_powers = [p for p in all_powers if p.name in unique_power_names]
+        unique_powers = [power_by_name[name] for name in unique_power_names if name in power_by_name]
 
-        heros.append(Hero(name, abilities, unique_powers))
+        hero = Hero(name, abilities, unique_powers)
+        
+        # Update the hero reference in the power objects
+        for power in unique_powers:
+            power.hero = hero
+
+        heros.append(hero)
     return heros
 
 def _extract_objects(soup: BeautifulSoup, table_index: int, parse_fn):
@@ -74,7 +86,7 @@ def _parse_power_data(tds: list[str]) -> Power:
     cost = int(tds[3])
     rarity = Rarity.from_string(tds[4].replace(' ', '_'))
 
-    #Todo add hero
+    # We update the power card later to include the hero
     return Power(name, description, cost, rarity, hero=None)
 
 def _replace_br_with_newline(tag_list: ResultSet[Tag]) -> list[Tag]:
