@@ -24,8 +24,6 @@ class Hero:
     """Class that represents a hero."""
     name: str
     abilities: dict[int, str]
-
-    #Todo add comment explaing this
     unique_powers: list['Power']
 
 
