@@ -5,7 +5,7 @@ from typing import Optional, cast, TypeVar, Callable
 from bs4 import BeautifulSoup, NavigableString, Tag
 from bs4.element import ResultSet
 
-from scraper.cards import Bloon, Hero, Monkey, Power, Rarity
+from scrapper.cards import Bloon, Hero, Monkey, Power, Rarity
 
 T = TypeVar('T')
 
